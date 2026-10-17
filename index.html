@@ -1050,6 +1050,30 @@
   }
   .ai-status.done{background:#e6f4ea; color:#1e7e34;}
   .ai-status.pending{background:var(--cream-deep, #F7F3EA); color:#9a8a5e;}
+
+  /* Completed cards collapse to just their header row — tap the header to
+     expand. See markAssignmentDone / loadAssignmentStatus. */
+  .assignment-item .ai-chevron{
+    display:none; width:14px; margin-right:6px; color:var(--orange);
+    transition:transform .15s ease;
+  }
+  .assignment-item.ai-done .ai-chevron{
+    display:inline-block; transform:rotate(90deg);
+    position:absolute; left:0; top:0; text-align:center;
+  }
+  /* Hanging indent so a wrapped title lines up under its text, not the arrow. */
+  .assignment-item.ai-done .ai-title{position:relative; padding-left:20px;}
+  .assignment-item.ai-done.ai-collapsed .ai-chevron{transform:none;}
+  .assignment-item.ai-done .ai-head{cursor:pointer;}
+  /* Status badge always sits on the right of the title row — long titles
+     wrap beside it instead of pushing the badge onto its own line. */
+  .assignment-item .ai-head{flex-wrap:nowrap;}
+  .assignment-item .ai-head .ai-title{flex:1; min-width:0;}
+  .assignment-item .ai-head .ai-status{flex-shrink:0; white-space:nowrap;}
+  .assignment-item.ai-collapsed{padding-top:14px; padding-bottom:14px;}
+  .assignment-item.ai-collapsed .ai-head{margin-bottom:0;}
+  .assignment-item.ai-collapsed .ai-info-btn{display:none;}
+  .assignment-item.ai-collapsed > :not(.ai-head){display:none !important;}
   .ai-file-field{
     border:1.5px dashed var(--orange);
     border-radius:8px;
@@ -5011,6 +5035,8 @@ function markAssignmentDone(itemEl, type, link){
   label.textContent = (type === 'attest' || type === 'link') ? 'Completed' : 'Submitted';
   label.classList.remove('pending');
   label.classList.add('done');
+  itemEl.classList.add('ai-done'); // makes the card collapsible — see setAssignmentCollapsed_
+  setAssignmentCollapsed_(itemEl, itemEl.classList.contains('ai-collapsed'));
 
   if(type === 'link'){
     const btn = itemEl.querySelector('[data-link-btn]');
@@ -5032,11 +5058,30 @@ function markAssignmentDone(itemEl, type, link){
 // student hasn't actually done themselves, since loadAssignmentStatus()
 // only ever adds "done" markers for what IS in the response — it never
 // had a way to clear stale ones that aren't.
+// Collapses/expands a completed card to just its header row. Only cards
+// marked done (.ai-done) can collapse; the header doubles as the toggle.
+function setAssignmentCollapsed_(itemEl, collapsed){
+  const done = itemEl.classList.contains('ai-done');
+  itemEl.classList.toggle('ai-collapsed', done && collapsed);
+  const head = itemEl.querySelector('.ai-head');
+  if(!head) return;
+  if(done){
+    head.setAttribute('role', 'button');
+    head.tabIndex = 0;
+    head.setAttribute('aria-expanded', String(!collapsed));
+  }else{
+    head.removeAttribute('role');
+    head.removeAttribute('tabindex');
+    head.removeAttribute('aria-expanded');
+  }
+}
 function resetAssignmentCardToPending(itemEl, type){
   const label = itemEl.querySelector('[data-status-label]');
   label.textContent = (type === 'upload' || type === 'upload-multi' || type === 'upload-fcp') ? 'Not Submitted' : 'Not Completed';
   label.classList.remove('done');
   label.classList.add('pending');
+  itemEl.classList.remove('ai-done');
+  setAssignmentCollapsed_(itemEl, false);
 
   const msgEl = itemEl.querySelector('[data-status-msg]');
   if(msgEl){ msgEl.textContent = ''; msgEl.className = 'ai-status-msg'; }
@@ -5148,6 +5193,30 @@ function resetInProgressForms(){
 document.querySelectorAll('.assignment-item').forEach(itemEl => {
   const assignment = itemEl.dataset.assignment;
   const type = itemEl.dataset.type;
+
+  // Collapse arrow + header toggle (only does anything once the card is done).
+  const head = itemEl.querySelector('.ai-head');
+  const title = itemEl.querySelector('.ai-title');
+  if(head && title){
+    const chevron = document.createElement('span');
+    chevron.className = 'ai-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '▸';
+    title.prepend(chevron);
+    const toggle = () => {
+      if(!itemEl.classList.contains('ai-done')) return;
+      setAssignmentCollapsed_(itemEl, !itemEl.classList.contains('ai-collapsed'));
+    };
+    head.addEventListener('click', e => {
+      if(e.target.closest('button, a, input')) return; // e.g. the ⓘ info button
+      toggle();
+    });
+    head.addEventListener('keydown', e => {
+      if(e.target !== head || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      toggle();
+    });
+  }
 
   if(type === 'link'){
     // Stash the button's original text/onclick before markAssignmentDone
@@ -5306,6 +5375,9 @@ async function loadAssignmentStatus(){
       resetAssignmentCardToPending(itemEl, type); // always reset first — see comment on that function for why
       if(items[assignment]){
         markAssignmentDone(itemEl, type, items[assignment].link);
+        // Collapsed by default on load. Cards completed live during this
+        // visit stay open instead, so the student still sees "Saved!".
+        setAssignmentCollapsed_(itemEl, true);
         if(type === 'attest'){
           const checkbox = itemEl.querySelector('[data-attest-checkbox]');
           checkbox.checked = true;
