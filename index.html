@@ -1237,6 +1237,28 @@
     </div>
   </div>
 
+  <!-- Ride Along Readiness confirmation — shown when a student ticks the
+       Ride Along Readiness attestation, before anything is saved. Go Back
+       unticks the box; Yes runs the normal attestation save. Sibling of
+       the .app-tab sections, same reasoning as ai-info-modal above. -->
+  <div class="ai-modal-overlay" id="rar-confirm-modal" style="display:none;">
+    <div class="ai-modal">
+      <h3>Confirm Ride Along Readiness</h3>
+      <p style="margin:0 0 8px;">By submitting, you are confirming that you have <b>actually completed</b> every item below. This is an official attestation that Elevate EMS uses to clear you for patient contacts, and it will go in your student record.</p>
+      <ul>
+        <li>All coursework through Module 2</li>
+        <li>Reviewed patient assessment and vital signs skills videos</li>
+        <li>Obtained CPR certification (if scheduling ride-alongs through Elevate EMS)</li>
+        <li>Completed and uploaded the Vital Signs Practice Assignment, <b>or</b> will complete it during your first scheduled ride-along <b>before</b> counting any patient contacts</li>
+        <li>Passed the Ride Along Readiness Quiz in JB Learning</li>
+      </ul>
+      <div class="pc-modal-btns">
+        <button type="button" onclick="closeRideAlongReadinessConfirm_(false)">Go Back</button>
+        <button type="button" class="pc-primary" onclick="closeRideAlongReadinessConfirm_(true)">Yes, I Attest to All of These</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Standalone-mode download fallback — see the comment on
        triggerFileDownload_ for why this exists (added-to-Home-Screen apps
        have no browser chrome, so window.open()'ing a file there strands
@@ -1746,7 +1768,7 @@
           <li>All coursework through Module 2</li>
           <li>Reviewed patient assessment and vital signs skills videos</li>
           <li>Obtained CPR certification (if scheduling ride-alongs through Elevate EMS)</li>
-          <li>Completed the Vital Signs Practice Assignment and uploaded it</li>
+          <li>Completed and uploaded the Vital Signs Practice Assignment, <b>or</b> will complete it during my first scheduled ride-along <b>before</b> counting any patient contacts</li>
           <li>Passed the Ride Along Readiness Quiz in JB Learning</li>
         </ul>
       </label>
@@ -4969,6 +4991,21 @@ function closeInfoModal(){
   document.getElementById('ai-info-modal').style.display = 'none';
 }
 
+// Ride Along Readiness confirmation popup — resolves true on "Yes",
+// false on "Go Back".
+let rideAlongReadinessConfirmResolve_ = null;
+function confirmRideAlongReadiness_(){
+  document.getElementById('rar-confirm-modal').style.display = 'flex';
+  return new Promise(resolve => { rideAlongReadinessConfirmResolve_ = resolve; });
+}
+function closeRideAlongReadinessConfirm_(confirmed){
+  document.getElementById('rar-confirm-modal').style.display = 'none';
+  if(rideAlongReadinessConfirmResolve_){
+    rideAlongReadinessConfirmResolve_(confirmed);
+    rideAlongReadinessConfirmResolve_ = null;
+  }
+}
+
 function markAssignmentDone(itemEl, type, link){
   const label = itemEl.querySelector('[data-status-label]');
   label.textContent = (type === 'attest' || type === 'link') ? 'Completed' : 'Submitted';
@@ -5224,6 +5261,11 @@ document.querySelectorAll('.assignment-item').forEach(itemEl => {
     const checkbox = itemEl.querySelector('[data-attest-checkbox]');
     checkbox.addEventListener('change', async () => {
       if(!checkbox.checked) return; // no "un-attest" — leave as completed once checked
+      if(assignment === 'Ride Along Readiness'){
+        checkbox.disabled = true; // no re-clicks while the popup is open
+        const confirmed = await confirmRideAlongReadiness_();
+        if(!confirmed){ checkbox.checked = false; checkbox.disabled = false; return; }
+      }
       checkbox.disabled = true;
       setAssignmentMsg(itemEl, null, "Please wait — saving…");
       try{
