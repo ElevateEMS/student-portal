@@ -970,10 +970,11 @@
   /* ---------- ASSIGNMENTS TAB ---------- */
   .assignments-wrap{max-width:800px; margin:0 auto; padding:32px 18px 80px;}
   .reminders-pdf-card{
-    background:var(--white);
-    border:1.5px solid var(--gold);
-    border-radius:12px;
-    padding:18px 20px;
+    /* Same look as .notice-orange — sets it apart from the white assignment cards below. */
+    background:#fff4e8;
+    border-left:4px solid var(--orange);
+    border-radius:8px;
+    padding:16px 18px;
     margin-bottom:24px;
     display:flex;
     align-items:center;
@@ -981,8 +982,8 @@
     gap:14px;
     flex-wrap:wrap;
   }
-  .reminders-pdf-card .rp-text .rp-title{font-weight:800; color:var(--navy); font-size:15px;}
-  .reminders-pdf-card .rp-text .rp-sub{font-size:12.5px; color:#7a6a3f; margin-top:2px;}
+  .reminders-pdf-card .rp-text .rp-title{font-weight:800; color:#7a4200; font-size:15px;}
+  .reminders-pdf-card .rp-text .rp-sub{font-size:12.5px; color:#7a4200; margin-top:2px;}
   .reminders-pdf-card a.rp-btn,
   .reminders-pdf-card button.rp-btn{
     background:var(--navy); color:#fff; text-decoration:none; font-size:13px;
@@ -991,7 +992,7 @@
   }
   .reminders-pdf-card a.rp-btn:hover,
   .reminders-pdf-card button.rp-btn:hover{background:var(--orange);}
-  .reminders-pdf-card.rp-pending{border-color:#d9dde2;}
+  .reminders-pdf-card.rp-pending{border-left-color:#d9dde2;}
   .reminders-pdf-card.rp-pending .rp-btn{background:#c9c9c9; cursor:not-allowed; pointer-events:none;}
   .rp-viewer-wrap{
     width:100%; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);
@@ -1630,7 +1631,7 @@
   <div class="reminders-pdf-card" id="remindersPdfCard">
     <div class="rp-text">
       <div class="rp-title">📌 Reminders &amp; To-Do List</div>
-      <div class="rp-sub">Hybrid EMT Course — first-day through Academy Week checklist</div>
+      <div class="rp-sub">First day through Academy Week</div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" class="rp-btn" onclick="toggleChecklistViewer()" id="checklistViewToggleBtn">View</button>
@@ -1646,10 +1647,6 @@
     </div>
   </div>
 
-  <div class="notice notice-orange">
-    <b>Before You Upload</b>
-    Please save each file with your name and the name of the document (e.g. "Gabriella Brown - First Class Paperwork") — these files are uploaded directly into your student records. And remember: all signatures obtained throughout the course must be a digital or physical signature. Typed signatures are not permitted, in accordance with state guidelines.
-  </div>
 
   <div class="assignment-item" data-assignment="First Class Paperwork Signatures" data-type="upload-fcp" id="fcpCard">
     <div class="ai-head">
