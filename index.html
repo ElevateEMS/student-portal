@@ -1797,6 +1797,29 @@
     <div class="ai-status-msg" data-status-msg></div>
   </div>
 
+  <!-- Info-only card — nothing to submit or tick, so no status badge and
+       it's skipped by the assignment-card wiring/status loops (data-type="info").
+       Due date mirrors the Patient Contacts card (see loadAssignmentDeadlines). -->
+  <div class="assignment-item" data-assignment="Schedule Ride Alongs" data-type="info">
+    <div class="ai-head">
+      <div class="ai-title">Schedule Ride Alongs</div>
+    </div>
+    <div class="ai-due" id="scheduleRaDue"></div>
+    <div class="ai-desc">
+      <b style="color:var(--navy);">You have two options for ride-alongs:</b>
+      <ol style="margin:8px 0 10px 18px; padding:0;">
+        <li style="margin-bottom:6px;"><b>Self-Schedule</b> — Call your local rescue squad and ask about setting up ride-alongs. Some departments also have a ride-along form on their website.</li>
+        <li><b>Schedule Ride Alongs through Elevate EMS</b> — Fill out a Ride Along Request form in the Student Portal using the link below. We'll set you up with an ambulance transport company (not 911). Requests need at least one month's notice, and you need your CPR certification first.</li>
+      </ol>
+      <p style="margin:0 0 8px;">All paperwork and documentation needed for your shifts are found on the Documentation page in the Patient Contacts section of the website, in addition to the physical copies mailed to you with your student shirt.</p>
+      <p style="margin:0;">Be sure that all pre-ride along requirements are met prior to beginning your ride alongs, including the Ride Along Readiness Attestation found above.</p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="ai-btn" onclick="showAppTab('ridealong'); showPage('request');">Go to Ride Along Request Forms →</button>
+      <button type="button" class="ai-btn" onclick="showAppTab('ridealong'); showPage('paperwork');">Go to Documentation →</button>
+    </div>
+  </div>
+
   <div class="assignment-item" data-assignment="Ride Along Paperwork & Patient Contacts" data-type="link">
     <div class="ai-head">
       <div class="ai-title">Ride-Along Paperwork &amp; Patient Contacts</div>
@@ -5190,6 +5213,7 @@ function resetInProgressForms(){
 document.querySelectorAll('.assignment-item').forEach(itemEl => {
   const assignment = itemEl.dataset.assignment;
   const type = itemEl.dataset.type;
+  if(type === 'info') return; // info-only card — nothing to wire up
 
   // Collapse arrow + header toggle (only does anything once the card is done).
   const head = itemEl.querySelector('.ai-head');
@@ -5369,6 +5393,7 @@ async function loadAssignmentStatus(){
     document.querySelectorAll('.assignment-item').forEach(itemEl => {
       const assignment = itemEl.dataset.assignment;
       const type = itemEl.dataset.type;
+      if(type === 'info') return; // info-only card — no status to load
       resetAssignmentCardToPending(itemEl, type); // always reset first — see comment on that function for why
       if(items[assignment]){
         markAssignmentDone(itemEl, type, items[assignment].link);
@@ -5420,6 +5445,7 @@ async function loadAssignmentDeadlines(){
     // Same deadline as the Academy Week Readiness & Compliance Attestation
     // (8:00 AM the day before Academy Week) — not a separate computed value.
     setDeadlineText('pcDue', d.academyWeekReadiness);
+    setDeadlineText('scheduleRaDue', d.academyWeekReadiness);
     setDeadlineText('testPrepDue', d.academyWeekReadiness);
 
     const tuitionDueSub = document.getElementById('tuitionDueSub');
