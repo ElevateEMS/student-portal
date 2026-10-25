@@ -1797,9 +1797,10 @@
     <div class="ai-status-msg" data-status-msg></div>
   </div>
 
-  <!-- Info-only card — nothing to submit or tick, so no status badge and
-       it's skipped by the assignment-card wiring/status loops (data-type="info").
-       Due date mirrors the Patient Contacts card (see loadAssignmentDeadlines). -->
+  <!-- Info-only card (data-type="info") — nothing to submit or tick, so no
+       status badge.
+       Due date mirrors the Patient Contacts card, and it collapses once
+       Patient Contacts are submitted (see setInfoCardDone_). -->
   <div class="assignment-item" data-assignment="Schedule Ride Alongs" data-type="info">
     <div class="ai-head">
       <div class="ai-title">Schedule Ride Alongs</div>
@@ -4260,6 +4261,8 @@ async function pcConfirmSubmit(){
     // up on next login/page refresh via loadAssignmentStatus().
     const pcAssignmentCard = document.querySelector('.assignment-item[data-assignment="Ride Along Paperwork & Patient Contacts"]');
     if(pcAssignmentCard) markAssignmentDone(pcAssignmentCard, 'link');
+    const scheduleRaCard = document.querySelector('.assignment-item[data-assignment="Schedule Ride Alongs"]');
+    if(scheduleRaCard) setInfoCardDone_(scheduleRaCard, true, true);
   }catch(err){
     console.error(err);
     setStatus(status, false, "Something went wrong submitting. Please try again.");
@@ -5095,6 +5098,12 @@ function setAssignmentCollapsed_(itemEl, collapsed){
     head.removeAttribute('aria-expanded');
   }
 }
+// Info-only cards (data-type="info") have no badge or status of their own —
+// this just makes one collapsible (done) or plain and open (not done).
+function setInfoCardDone_(itemEl, done, collapsed){
+  itemEl.classList.toggle('ai-done', done);
+  setAssignmentCollapsed_(itemEl, done && collapsed);
+}
 function resetAssignmentCardToPending(itemEl, type){
   const label = itemEl.querySelector('[data-status-label]');
   label.textContent = (type === 'upload' || type === 'upload-multi' || type === 'upload-fcp') ? 'Not Submitted' : 'Not Completed';
@@ -5213,7 +5222,6 @@ function resetInProgressForms(){
 document.querySelectorAll('.assignment-item').forEach(itemEl => {
   const assignment = itemEl.dataset.assignment;
   const type = itemEl.dataset.type;
-  if(type === 'info') return; // info-only card — nothing to wire up
 
   // Collapse arrow + header toggle (only does anything once the card is done).
   const head = itemEl.querySelector('.ai-head');
@@ -5238,6 +5246,8 @@ document.querySelectorAll('.assignment-item').forEach(itemEl => {
       toggle();
     });
   }
+
+  if(type === 'info') return; // info-only card — just the collapse toggle above
 
   if(type === 'link'){
     // Stash the button's original text/onclick before markAssignmentDone
@@ -5393,7 +5403,12 @@ async function loadAssignmentStatus(){
     document.querySelectorAll('.assignment-item').forEach(itemEl => {
       const assignment = itemEl.dataset.assignment;
       const type = itemEl.dataset.type;
-      if(type === 'info') return; // info-only card — no status to load
+      if(type === 'info'){
+        // Schedule Ride Alongs has no status of its own — it collapses once
+        // Patient Contacts are submitted (no badge either way).
+        setInfoCardDone_(itemEl, !!items["Ride Along Paperwork & Patient Contacts"], true);
+        return;
+      }
       resetAssignmentCardToPending(itemEl, type); // always reset first — see comment on that function for why
       if(items[assignment]){
         markAssignmentDone(itemEl, type, items[assignment].link);
