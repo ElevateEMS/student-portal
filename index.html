@@ -1799,9 +1799,10 @@
 
   <!-- Info-only card (data-type="info") — nothing to submit or tick, so no
        status badge.
-       Due date mirrors the Patient Contacts card, and it collapses once
-       Patient Contacts are submitted (see setInfoCardDone_). -->
-  <div class="assignment-item" data-assignment="Schedule Ride Alongs" data-type="info">
+       Due date mirrors the Patient Contacts card. Always collapsible (ai-done):
+       starts open, remembers if the student closes/reopens it, and auto-closes
+       once Patient Contacts are submitted (see applyScheduleRaState_). -->
+  <div class="assignment-item ai-done" data-assignment="Schedule Ride Alongs" data-type="info">
     <div class="ai-head">
       <div class="ai-title">Schedule Ride Alongs</div>
     </div>
@@ -4262,7 +4263,10 @@ async function pcConfirmSubmit(){
     const pcAssignmentCard = document.querySelector('.assignment-item[data-assignment="Ride Along Paperwork & Patient Contacts"]');
     if(pcAssignmentCard) markAssignmentDone(pcAssignmentCard, 'link');
     const scheduleRaCard = document.querySelector('.assignment-item[data-assignment="Schedule Ride Alongs"]');
-    if(scheduleRaCard) setInfoCardDone_(scheduleRaCard, true, true);
+    if(scheduleRaCard && !scheduleRaCard.classList.contains('ai-collapsed')){
+      setAssignmentCollapsed_(scheduleRaCard, true);
+      setScheduleRaPref_(true);
+    }
   }catch(err){
     console.error(err);
     setStatus(status, false, "Something went wrong submitting. Please try again.");
@@ -5098,11 +5102,22 @@ function setAssignmentCollapsed_(itemEl, collapsed){
     head.removeAttribute('aria-expanded');
   }
 }
-// Info-only cards (data-type="info") have no badge or status of their own —
-// this just makes one collapsible (done) or plain and open (not done).
-function setInfoCardDone_(itemEl, done, collapsed){
-  itemEl.classList.toggle('ai-done', done);
-  setAssignmentCollapsed_(itemEl, done && collapsed);
+// Schedule Ride Alongs (info-only, no badge) — open by default, but once
+// the student closes or reopens it, that choice is remembered in this
+// browser (per student email). With no saved choice yet, it auto-closes
+// once Patient Contacts are submitted.
+function scheduleRaPrefKey_(){
+  return 'scheduleRaCollapsed:' + (siteEmail || '').trim().toLowerCase();
+}
+function getScheduleRaPref_(){
+  try{ return localStorage.getItem(scheduleRaPrefKey_()); }catch(e){ return null; }
+}
+function setScheduleRaPref_(collapsed){
+  try{ localStorage.setItem(scheduleRaPrefKey_(), collapsed ? '1' : '0'); }catch(e){}
+}
+function applyScheduleRaState_(itemEl, pcSubmitted){
+  const pref = getScheduleRaPref_();
+  setAssignmentCollapsed_(itemEl, pref !== null ? pref === '1' : pcSubmitted);
 }
 function resetAssignmentCardToPending(itemEl, type){
   const label = itemEl.querySelector('[data-status-label]');
@@ -5234,7 +5249,9 @@ document.querySelectorAll('.assignment-item').forEach(itemEl => {
     title.prepend(chevron);
     const toggle = () => {
       if(!itemEl.classList.contains('ai-done')) return;
-      setAssignmentCollapsed_(itemEl, !itemEl.classList.contains('ai-collapsed'));
+      const collapsed = !itemEl.classList.contains('ai-collapsed');
+      setAssignmentCollapsed_(itemEl, collapsed);
+      if(type === 'info') setScheduleRaPref_(collapsed);
     };
     head.addEventListener('click', e => {
       if(e.target.closest('button, a, input')) return; // e.g. the ⓘ info button
@@ -5247,7 +5264,7 @@ document.querySelectorAll('.assignment-item').forEach(itemEl => {
     });
   }
 
-  if(type === 'info') return; // info-only card — just the collapse toggle above
+  if(type === 'info'){ setAssignmentCollapsed_(itemEl, false); return; } // info-only card — just the collapse toggle above
 
   if(type === 'link'){
     // Stash the button's original text/onclick before markAssignmentDone
@@ -5404,9 +5421,8 @@ async function loadAssignmentStatus(){
       const assignment = itemEl.dataset.assignment;
       const type = itemEl.dataset.type;
       if(type === 'info'){
-        // Schedule Ride Alongs has no status of its own — it collapses once
-        // Patient Contacts are submitted (no badge either way).
-        setInfoCardDone_(itemEl, !!items["Ride Along Paperwork & Patient Contacts"], true);
+        // Schedule Ride Alongs has no status of its own — see applyScheduleRaState_.
+        applyScheduleRaState_(itemEl, !!items["Ride Along Paperwork & Patient Contacts"]);
         return;
       }
       resetAssignmentCardToPending(itemEl, type); // always reset first — see comment on that function for why
